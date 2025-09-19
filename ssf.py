@@ -50,10 +50,12 @@ drift_threshold = 0.05
 
 if dataset == 'nsl':
     input_dim = 121
+elif dataset == 'modbus':
+    input_dim = 1
 else:
     input_dim = 196
 
-
+#dataset loading
 if dataset == 'nsl':
     KDDTrain_dataset_path   = "NSL_pre_data/PKDDTrain+.csv"
     KDDTest_dataset_path    = "NSL_pre_data/PKDDTest+.csv"
@@ -62,6 +64,14 @@ if dataset == 'nsl':
     KDDTest    =  load_data(KDDTest_dataset_path)
 
     splitter_nsl = SplitData(dataset='nsl')
+if dataset == 'modbus':
+    ModbusTrain_dataset_path   = "Modbus_pre_data/ModbusTrain.csv"
+    ModbusTest_dataset_path    = "Modbus_pre_data/ModbusTest.csv"
+
+    ModbusTrain   =  load_data(ModbusTrain_dataset_path)
+    ModbusTest    =  load_data(ModbusTest_dataset_path)
+
+    splitter_modbus = SplitData(dataset='modbus')
 else:
     UNSWTrain_dataset_path   = "UNSW_pre_data/UNSWTrain.csv"
     UNSWTest_dataset_path    = "UNSW_pre_data/UNSWTest.csv"
@@ -88,6 +98,10 @@ for i in range(seed_round):
         # Transform the data
         x_train, y_train = splitter_nsl.transform(KDDTrain, labels='labels2')
         x_test, y_test = splitter_nsl.transform(KDDTest, labels='labels2')
+    elif dataset == 'modbus':
+        # Transform the data
+        x_train, y_train = splitter_modbus.transform(ModbusTrain, labels='label')#update label
+        x_test, y_test = splitter_modbus.transform(ModbusTest, labels='label')
     else:
         # Transform the data
         x_train, y_train = splitter_unsw.transform(UNSWTrain, labels='label')
@@ -115,6 +129,7 @@ for i in range(seed_round):
     if dataset == 'nsl':
         model = AE(input_dim).to(device)
         teacher_model = AE(input_dim).to(device)
+    # we'll go with a classifier for modbus dataset
     else:
         model = AE_classifier(input_dim).to(device)
         teacher_model = AE_classifier(input_dim).to(device)
@@ -145,9 +160,9 @@ for i in range(seed_round):
 
             loss.backward()
             optimizer.step()
-
+    #here the initial model is obtained
     teacher_model.load_state_dict(model.state_dict())  # Initialize teacher model
-
+    #evaluate the teacher
     x_train = x_train.to(device)
     x_test = x_test.to(device)
     online_x_train, online_y_train  = online_x_train.to(device), online_y_train.to(device)
